@@ -7,7 +7,7 @@ python src/embed.py embed \
     --data-path="data/post_contents_by_newsletter.pkl" \
     --embedding-model="openai" \
     --recreate-db=True \
-    --chunk-size=512 \
+    --chunk-size=1024 \
     --chunk-overlap=50 \
     --collection-name="substack-search-v2-openai" \
     --newsletter-limit=2 
@@ -146,14 +146,19 @@ class NewsletterEmbedder:
         if newsletter_limit:
             posts_dict = {k: posts_dict[k] for k in list(posts_dict.keys())[:newsletter_limit]}
 
+        print(f"\nProcessing articles...")
         for blog_name, posts in posts_dict.items():
+            print(f"\nProcessing {blog_name} ({len(posts)} posts)")
             for post_idx in range(len(posts)):
-                id, title, audience, canonical_url, text, metadata = self._get_article(
-                    posts_dict, blog_name, post_idx
-                )
-                description = posts[list(posts.keys())[post_idx]].get("description", "")
-                text = f"Title: {title}\nDescription: {description}\nText: {text}"
-                documents.append(Document(text=text, metadata=metadata))
+                try:
+                    id, title, audience, canonical_url, text, metadata = self._get_article(
+                        posts_dict, blog_name, post_idx
+                    )
+                    description = posts[list(posts.keys())[post_idx]].get("description", "")
+                    text = f"Title: {title}\nDescription: {description}\nText: {text}"
+                    documents.append(Document(text=text, metadata=metadata))
+                except Exception as e:
+                    print(f"  Error processing post {post_idx} from {blog_name}: {str(e)}")
 
         # Configure settings and create index
         Settings.chunk_size = chunk_size

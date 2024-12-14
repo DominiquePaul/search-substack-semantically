@@ -92,7 +92,7 @@ async def query_articles(request: QueryRequest):
     try:
         # Combine messages into a prompt
         system_message = next((msg.content for msg in request.messages if msg.role == "system"), 
-            "You are a helpful assistant that can recommend articles on a given topic. You can recommend up to 5 articles. Do not recommend the same url twice. Always provide title, substack, short description of the post and url.")
+            "You are a helpful assistant that can recommend articles on a given topic. You can recommend up to 5 articles. Do not recommend the same url twice. Always provide title, substack, short description of the post and url. Use nice formatting with appropriate line breaks.")
         
         user_messages = [msg.content for msg in request.messages if msg.role == "user"]
         full_query = f"{system_message}\n\n{' '.join(user_messages)}"
