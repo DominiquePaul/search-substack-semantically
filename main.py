@@ -14,11 +14,21 @@ from dotenv import load_dotenv
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 from llama_index.core.response_synthesizers import get_response_synthesizer
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 # Create FastAPI app
 app = FastAPI()
+
+# Set up CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust as needed
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Set up logging
 logfire.configure(
@@ -114,34 +124,25 @@ async def query_articles(request: QueryRequest):
 async def stream_response(full_query):
     try:
         response = streaming_query_engine.query(full_query)
-
+        
         async def generate_stream() -> AsyncGenerator[bytes, None]:
             try:
                 response_gen = response.response_gen
                 
-                # Send initial role message
-                yield f"data: {json.dumps({'choices': [{
-                    'delta': {
-                        'role': 'assistant'
-                    }
-                }]})}\n\n".encode('utf-8')
-                
-                # Stream the content
                 for text_chunk in response_gen:
-                    yield f"data: {json.dumps({'choices': [{
-                        'delta': {
-                            'content': text_chunk
-                        }
-                    }]})}\n\n".encode('utf-8')
+                    chunk = {
+                        "choices": [{
+                            "delta": {
+                                "content": text_chunk
+                            },
+                            "index": 0
+                        }]
+                    }
+                    yield f"data: {json.dumps(chunk)}\n\n".encode('utf-8')
                 
-                # Send sources as a special message
-                sources = [{
-                    "metadata": source_node.metadata,
-                    "text": source_node.text
-                } for source_node in response.source_nodes]
-                
-                yield f"data: {json.dumps({'sources': sources})}\n\n".encode('utf-8')
-                yield f"data: [DONE]\n\n".encode('utf-8')
+                # Send final chunk
+                yield f"data: {json.dumps({'choices': [{'delta': {'content': ''}, 'finish_reason': 'stop', 'index': 0}]})}\n\n".encode('utf-8')
+                yield b"data: [DONE]\n\n"
                 
             except Exception as e:
                 logfire.error("Error in stream generation", error=str(e))
@@ -151,12 +152,11 @@ async def stream_response(full_query):
             generate_stream(),
             media_type="text/event-stream",
             headers={
+                "Content-Type": "text/event-stream",
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
-                "Content-Type": "text/event-stream"
             }
         )
-        
     except Exception as e:
         logfire.error("Error initializing stream", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
