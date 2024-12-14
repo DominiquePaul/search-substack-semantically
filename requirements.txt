@@ -130,7 +130,6 @@ pypdf==5.1.0
 python-dateutil==2.9.0.post0 
 python-dotenv==1.0.1 
 pytz==2024.2 
-pywin32==308 
 pyyaml==6.0.2 
 qdrant-client==1.12.1 
 regex==2024.11.6 
