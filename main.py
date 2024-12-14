@@ -119,14 +119,22 @@ async def stream_response(full_query):
             try:
                 response_gen = response.response_gen
                 
+                # Send initial role message
+                yield f"data: {json.dumps({'choices': [{
+                    'delta': {
+                        'role': 'assistant'
+                    }
+                }]})}\n\n".encode('utf-8')
+                
+                # Stream the content
                 for text_chunk in response_gen:
                     yield f"data: {json.dumps({'choices': [{
                         'delta': {
-                            'role': 'assistant',
                             'content': text_chunk
                         }
                     }]})}\n\n".encode('utf-8')
                 
+                # Send sources as a special message
                 sources = [{
                     "metadata": source_node.metadata,
                     "text": source_node.text
@@ -134,6 +142,7 @@ async def stream_response(full_query):
                 
                 yield f"data: {json.dumps({'sources': sources})}\n\n".encode('utf-8')
                 yield f"data: [DONE]\n\n".encode('utf-8')
+                
             except Exception as e:
                 logfire.error("Error in stream generation", error=str(e))
                 yield f"data: {json.dumps({'error': str(e)})}\n\n".encode('utf-8')
@@ -144,6 +153,7 @@ async def stream_response(full_query):
             headers={
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
+                "Content-Type": "text/event-stream"
             }
         )
         

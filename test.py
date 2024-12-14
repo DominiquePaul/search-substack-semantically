@@ -1,9 +1,11 @@
 import requests
 import json
 
+
+
 # First question
 response1 = requests.post(
-    'http://localhost:8000/query',
+    'https://search-substack-semantically.onrender.com/query', #'http://localhost:8000/query',
     json={
         'messages': [
             {
@@ -66,7 +68,7 @@ assistant_response1 = process_stream(response1)
 
 # Second question (including previous conversation)
 response2 = requests.post(
-    'http://localhost:8000/query',
+    'https://search-substack-semantically.onrender.com/query', #'http://localhost:8000/query',
     json={
         'messages': [
             {
