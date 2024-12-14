@@ -19,6 +19,7 @@ from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.embeddings.mixedbreadai import MixedbreadAIEmbedding
 from tqdm import tqdm
 import tiktoken
+from typing import List, Optional, Union, Any
 
 class PostEmbedder:
     def __init__(self):
@@ -33,7 +34,9 @@ class PostEmbedder:
         
     def truncate_text(self, *texts: str) -> str:
         """Truncate concatenated texts to fit within token limit."""
-        combined_text = " ".join(texts)
+        # Convert None values to empty strings
+        cleaned_texts = [str(text) if text is not None else '' for text in texts]
+        combined_text = " ".join(cleaned_texts)
         tokens = self.tokenizer.encode(combined_text)
         if len(tokens) > self.max_tokens:
             tokens = tokens[:self.max_tokens]
@@ -53,13 +56,13 @@ class PostEmbedder:
             ),
         )
 
-    def batch_embed_texts(self, texts: list[str], embed_model) -> list:
+    def batch_embed_texts(self, texts: List[str], embed_model: Any) -> List[List[float]]:
         """Embed a batch of texts, truncating if necessary."""
         # Truncate each text to fit within token limit
         truncated_texts = [self.truncate_text(text) for text in texts]
         return embed_model.get_text_embedding_batch(truncated_texts)
 
-    def get_existing_embeddings(self, post_id: str, chunk_collection_name: str) -> list:
+    def get_existing_embeddings(self, post_id: str, chunk_collection_name: str) -> Optional[List[float]]:
         """Fetch and average existing chunk embeddings for a post."""
         # Search for all chunks belonging to this post
         chunks = self.client.scroll(
@@ -78,7 +81,9 @@ class PostEmbedder:
             return None
 
         # Extract and average embeddings
-        embeddings = [chunk.vector for chunk in chunks]
+        embeddings = [chunk.vector for chunk in chunks if chunk.vector is not None]
+        if not embeddings:
+            return None
         return np.mean(embeddings, axis=0).tolist()
 
     def get_article(self, data: dict, blog: str, idx: int) -> tuple:
@@ -118,7 +123,7 @@ class PostEmbedder:
         collection_name: str, 
         embedding_model: str = "openai",
         use_existing_embeddings: bool = False,
-        chunk_collection_name: str = None,
+        chunk_collection_name: Optional[str] = None,
         batch_size: int = 32
     ):
         """
@@ -166,7 +171,7 @@ class PostEmbedder:
                         posts_dict, blog_name, post_idx
                     )
                     
-                    if use_existing_embeddings:
+                    if use_existing_embeddings and chunk_collection_name:
                         # Use existing chunk embeddings
                         embedding = self.get_existing_embeddings(id, chunk_collection_name)
                         if embedding:
