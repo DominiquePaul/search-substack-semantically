@@ -28,10 +28,14 @@ logfire.configure(
 logfire.instrument_fastapi(app)
 
 
-# Create Pydantic model for request
+# Create Pydantic models for request
+class Message(BaseModel):
+    role: str  # system, user, or assistant
+    content: str
+
 class QueryRequest(BaseModel):
-    query: str
-    instructions: Optional[str] = "You are a helpful assistant that can recommend articles on a given topic. You can recommend up to 5 articles. Do not recommend the same url twice. Always provide title, substack, short description of the post and url."
+    messages: list[Message]
+    stream: Optional[bool] = False
 
 # Load environment variables and initialize components
 load_dotenv()
@@ -76,44 +80,60 @@ streaming_query_engine = index.as_query_engine(
 @app.post("/query")
 async def query_articles(request: QueryRequest):
     try:
-        full_query = f"{request.instructions}\n\n{request.query}"
-        response = query_engine.query(full_query)
+        # Combine messages into a prompt
+        system_message = next((msg.content for msg in request.messages if msg.role == "system"), 
+            "You are a helpful assistant that can recommend articles on a given topic. You can recommend up to 5 articles. Do not recommend the same url twice. Always provide title, substack, short description of the post and url.")
         
-        sources = [{
-            "metadata": source_node.metadata,
-            "text": source_node.text
-        } for source_node in response.source_nodes]
+        user_messages = [msg.content for msg in request.messages if msg.role == "user"]
+        full_query = f"{system_message}\n\n{' '.join(user_messages)}"
         
-        return JSONResponse({
-            "response": str(response),
-            "sources": sources
-        })
+        if request.stream:
+            return await stream_response(full_query)
+        else:
+            response = query_engine.query(full_query)
+            
+            sources = [{
+                "metadata": source_node.metadata,
+                "text": source_node.text
+            } for source_node in response.source_nodes]
+            
+            return JSONResponse({
+                "choices": [{
+                    "message": {
+                        "role": "assistant",
+                        "content": str(response)
+                    },
+                    "finish_reason": "stop"
+                }],
+                "sources": sources
+            })
     except Exception as e:
         logfire.error("Error processing query", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/query/stream")
-async def query_articles_stream(request: QueryRequest):
+async def stream_response(full_query):
     try:
-        full_query = f"{request.instructions}\n\n{request.query}"
         response = streaming_query_engine.query(full_query)
 
         async def generate_stream() -> AsyncGenerator[bytes, None]:
             try:
-                # Get the generator from the response
                 response_gen = response.response_gen
                 
-                # Stream the response text
                 for text_chunk in response_gen:
-                    yield f"data: {json.dumps({'response': text_chunk})}\n\n".encode('utf-8')
+                    yield f"data: {json.dumps({'choices': [{
+                        'delta': {
+                            'role': 'assistant',
+                            'content': text_chunk
+                        }
+                    }]})}\n\n".encode('utf-8')
                 
-                # Send sources after the response is complete
                 sources = [{
                     "metadata": source_node.metadata,
                     "text": source_node.text
                 } for source_node in response.source_nodes]
                 
                 yield f"data: {json.dumps({'sources': sources})}\n\n".encode('utf-8')
+                yield f"data: [DONE]\n\n".encode('utf-8')
             except Exception as e:
                 logfire.error("Error in stream generation", error=str(e))
                 yield f"data: {json.dumps({'error': str(e)})}\n\n".encode('utf-8')
