@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File with Package Debugging",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "python": "/Users/dpaul/Library/Caches/pypoetry/virtualenvs/subspace-Ej4MHF9M-py3.12/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "DOTENV_PATH": "${workspaceFolder}/.env"
+            },
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
