@@ -3,14 +3,14 @@
 python embed.py embed
 
 # Specify parameters
-python embed.py embed \
+python src/embed.py embed \
     --data-path="data/post_contents_by_newsletter.pkl" \
     --embedding-model="openai" \
     --recreate-db=True \
     --chunk-size=512 \
     --chunk-overlap=50 \
-    --newsletter-limit=2 \
-    --collection-name="my_collection"
+    --collection-name="substack-search-v2-openai" \
+    --newsletter-limit=2 
 
 # Get help
 python embed.py embed --help

@@ -31,13 +31,14 @@ class PostEmbedder:
         self.tokenizer = tiktoken.get_encoding("cl100k_base")  # Used by text-embedding-ada-002
         self.max_tokens = 8192  # OpenAI's token limit
         
-    def truncate_text(self, text: str) -> str:
-        """Truncate text to fit within token limit."""
-        tokens = self.tokenizer.encode(text)
+    def truncate_text(self, *texts: str) -> str:
+        """Truncate concatenated texts to fit within token limit."""
+        combined_text = " ".join(texts)
+        tokens = self.tokenizer.encode(combined_text)
         if len(tokens) > self.max_tokens:
             tokens = tokens[:self.max_tokens]
-            text = self.tokenizer.decode(tokens)
-        return text
+            combined_text = self.tokenizer.decode(tokens)
+        return combined_text
         
     def create_post_level_collection(self, collection_name: str):
         """Create a new collection for post-level embeddings if it doesn't exist."""
