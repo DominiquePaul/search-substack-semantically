@@ -1,0 +1,5 @@
+- Use poetry for dependencies
+- Use fire for CLI
+- Use qdrant for vector DB
+- Use supabase for DB
+- Use llama-index for vector search

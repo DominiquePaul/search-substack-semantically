@@ -1,9 +1,9 @@
 import pickle
-import pandas as pd
-from substack_api import newsletter, user
-from tqdm import tqdm
 import time
-from typing import Dict, List
+
+import pandas as pd
+from scrape_substack import newsletter, user
+from tqdm import tqdm
 
 pd.set_option("display.max_columns", None)
 
@@ -33,7 +33,7 @@ relevant_columns_newsletters = [
     "type",
     "language",
     "sections",
-    "created_at",
+    "scraped_at",
     # Popularity metrics
     "freeSubscriberCount",
     "rankingDetail",
@@ -103,7 +103,7 @@ print(f"Processing {len(remaining_subdomains)} remaining newsletters...")
 
 def process_newsletter(
     subdomain: str, retry_count: int = 3, delay: float = 1.0
-) -> Dict:
+) -> dict:
     failed_slugs = []
     for attempt in range(retry_count):
         try:

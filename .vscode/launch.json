@@ -1,20 +1,16 @@
 {
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
-            "name": "Python: Current File with Package Debugging",
+            "name": "Python Debugger: Current File",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "cwd": "${workspaceFolder}",
-            "python": "/Users/dpaul/Library/Caches/pypoetry/virtualenvs/subspace-Ej4MHF9M-py3.12/bin/python",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}",
-                "DOTENV_PATH": "${workspaceFolder}/.env"
-            },
-            "envFile": "${workspaceFolder}/.env"
+            "console": "integratedTerminal"
         }
     ]
 }
